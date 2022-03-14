@@ -20,6 +20,7 @@ from esphome.const import (
     CONF_SPEED,
     CONF_STATE,
     CONF_TRIGGER_ID,
+    CONF_WAKEUP_PIN,
 )
 
 CODEOWNERS = ["@OnFreund", "@loongyh"]
@@ -64,6 +65,7 @@ LEDControlAction = fingerprint_grow_ns.class_("LEDControlAction", automation.Act
 AuraLEDControlAction = fingerprint_grow_ns.class_(
     "AuraLEDControlAction", automation.Action
 )
+DeepSleepAction = fingerprint_grow_ns.class_("DeepSleepAction", automation.Action)
 
 AuraLEDState = fingerprint_grow_ns.enum("GrowAuraLEDState", True)
 AURA_LED_STATES = {
@@ -92,6 +94,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(FingerprintGrowComponent),
             cv.Optional(CONF_SENSING_PIN): pins.gpio_input_pin_schema,
+            cv.Optional(CONF_WAKEUP_PIN): pins.gpio_input_pin_schema,
             cv.Optional(CONF_PASSWORD): cv.uint32_t,
             cv.Optional(CONF_NEW_PASSWORD): cv.uint32_t,
             cv.Optional(CONF_ON_FINGER_SCAN_MATCHED): automation.validate_automation(
@@ -151,6 +154,10 @@ async def to_code(config):
     if CONF_SENSING_PIN in config:
         sensing_pin = await cg.gpio_pin_expression(config[CONF_SENSING_PIN])
         cg.add(var.set_sensing_pin(sensing_pin))
+
+    if CONF_WAKEUP_PIN in config:
+        wakeup_pin = await cg.gpio_pin_expression(config[CONF_WAKEUP_PIN])
+        cg.add(var.set_wakeup_pin(wakeup_pin))
 
     for conf in config.get(CONF_ON_FINGER_SCAN_MATCHED, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
@@ -296,4 +303,20 @@ async def fingerprint_grow_aura_led_control_to_code(
     for key in [CONF_STATE, CONF_SPEED, CONF_COLOR, CONF_COUNT]:
         template_ = await cg.templatable(config[key], args, cg.uint8)
         cg.add(getattr(var, f"set_{key}")(template_))
+    return var
+
+
+@automation.register_action(
+    "fingerprint_grow.deep_sleep",
+    DeepSleepAction,
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.use_id(FingerprintGrowComponent),
+        }
+    ),
+)
+async def fingerprint_grow_deep_sleep_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+
     return var

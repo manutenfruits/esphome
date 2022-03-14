@@ -319,7 +319,28 @@ void FingerprintGrowComponent::aura_led_control(uint8_t state, uint8_t speed, ui
   }
 }
 
+void FingerprintGrowComponent::deep_sleep() {
+  if (this->wakeup_pin_ != nullptr) {
+    this->running_ = false;
+    this->wakeup_pin_->digital_write(false);
+  }
+}
+
+void FingerprintGrowComponent::check_is_running_() {
+  if (this->wakeup_pin_ != nullptr && !this->running_) {
+    this->wakeup_pin_->digital_write(true);
+    uint32_t boot_up_time = millis() + 100;
+    // Wait for chip to boot and be ready for commands.
+    while (millis() < boot_up_time) {
+      delay(10);
+    }
+    this->running_ = true;
+  }
+}
+
 uint8_t FingerprintGrowComponent::send_command_() {
+  this->check_is_running_();
+
   this->write((uint8_t)(START_CODE >> 8));
   this->write((uint8_t)(START_CODE & 0xFF));
   this->write(this->address_[0]);

@@ -95,6 +95,7 @@ class FingerprintGrowComponent : public PollingComponent, public uart::UARTDevic
     this->address_[3] = (uint8_t)(address & 0xFF);
   }
   void set_sensing_pin(GPIOPin *sensing_pin) { this->sensing_pin_ = sensing_pin; }
+  void set_wakeup_pin(GPIOPin *wakeup_pin) { this->wakeup_pin_ = wakeup_pin; }
   void set_password(uint32_t password) { this->password_ = password; }
   void set_new_password(uint32_t new_password) { this->new_password_ = &new_password; }
   void set_fingerprint_count_sensor(sensor::Sensor *fingerprint_count_sensor) {
@@ -138,8 +139,10 @@ class FingerprintGrowComponent : public PollingComponent, public uart::UARTDevic
 
   void led_control(bool state);
   void aura_led_control(uint8_t state, uint8_t speed, uint8_t color, uint8_t count);
+  void deep_sleep();
 
  protected:
+  void check_is_running_();
   void scan_and_match_();
   uint8_t scan_image_(uint8_t buffer);
   uint8_t save_fingerprint_();
@@ -150,11 +153,13 @@ class FingerprintGrowComponent : public PollingComponent, public uart::UARTDevic
   uint8_t send_command_();
 
   std::vector<uint8_t> data_ = {};
+  bool running_ = false;
   uint8_t address_[4] = {0xFF, 0xFF, 0xFF, 0xFF};
   uint16_t capacity_ = 64;
   uint32_t password_ = 0x0;
   uint32_t *new_password_{nullptr};
   GPIOPin *sensing_pin_{nullptr};
+  GPIOPin *wakeup_pin_{nullptr};
   uint8_t enrollment_image_ = 0;
   uint16_t enrollment_slot_ = 0;
   uint8_t enrollment_buffers_ = 5;
@@ -274,6 +279,11 @@ template<typename... Ts> class AuraLEDControlAction : public Action<Ts...>, publ
 
     this->parent_->aura_led_control(state, speed, color, count);
   }
+};
+
+template<typename... Ts> class DeepSleepAction : public Action<Ts...>, public Parented<FingerprintGrowComponent> {
+ public:
+  void play(Ts... x) override { this->parent_->deep_sleep(); }
 };
 
 }  // namespace fingerprint_grow
