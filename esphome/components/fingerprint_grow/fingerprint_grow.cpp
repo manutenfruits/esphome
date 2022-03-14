@@ -327,7 +327,9 @@ void FingerprintGrowComponent::deep_sleep() {
 }
 
 void FingerprintGrowComponent::check_is_running_() {
+  ESP_LOGD(TAG, "Check is running...");
   if (this->wakeup_pin_ != nullptr && !this->running_) {
+    ESP_LOGD(TAG, "It's off, turning on now and waiting 100ms...");
     this->wakeup_pin_->digital_write(true);
     uint32_t boot_up_time = millis() + 100;
     // Wait for chip to boot and be ready for commands.
@@ -335,6 +337,9 @@ void FingerprintGrowComponent::check_is_running_() {
       delay(10);
     }
     this->running_ = true;
+    ESP_LOGD(TAG, "Should be running now!");
+  } else {
+    ESP_LOGD(TAG, "It was already running!");
   }
 }
 
